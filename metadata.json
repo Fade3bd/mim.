@@ -1,0 +1,27 @@
+{
+  "app": "Quran Hafs",
+  "language": "ar",
+  "version": "1.0.0",
+  "author": "MiM",
+  "type": "religious",
+  "pages": 604,
+  "recitation": "حفص عن عاصم",
+  "features": [
+    "عرض صفحات المصحف",
+    "تنقل بالسحب",
+    "فهرس رقمي",
+    "منبه ورد يومي",
+    "كاش محلي",
+    "وضع ملء الشاشة"
+  ],
+  "icons": {
+    "small": "quran-192.png",
+    "large": "quran-512.png"
+  },
+  "offline": true,
+  "platforms": [
+    "android",
+    "ios",
+    "desktop"
+  ]
+}

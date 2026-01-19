@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+ <link rel="manifest" href="manifest.json">
+<script>
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("./service-worker.js")
+    .then(()=>console.log("SW OK"))
+    .catch(e=>console.log("SW FAIL", e));
+}
+</script>
+ 
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>القرآن الكريم — حفص</title>
+
+<style>
+body{
+ margin:0;
+ background:#0b1220;
+ color:#fff;
+ font-family:system-ui;
+}
+
+/* HEADER */
+header{
+ background:#0f172a;
+ padding:12px;
+ text-align:center;
+ font-weight:bold;
+}
+
+/* SEARCH */
+.search{
+ padding:8px;
+ text-align:center;
+}
+.search input{
+ width:85%;
+ padding:10px;
+ border-radius:14px;
+ border:none;
+ background:#020617;
+ color:#fff;
+}
+
+/* AYAH */
+.ayah-box{
+ margin:10px;
+ padding:12px;
+ border-radius:16px;
+ background:#111827;
+ text-align:center;
+ font-size:17px;
+}
+
+/* VIEWER */
+.viewer{
+ display:flex;
+ justify-content:center;
+ padding:10px;
+ max-height:70vh;
+ overflow-y:auto;
+}
+
+img{
+ max-width:100%;
+ border-radius:16px;
+ background:#fff;
+ animation:glow 6s infinite alternate,frame 10s infinite alternate;
+}
+
+/* NAV */
+.nav{
+ display:flex;
+ justify-content:space-between;
+ padding:10px;
+}
+
+.nav button{
+ flex:1;
+ margin:0 5px;
+ padding:12px;
+ border:none;
+ border-radius:16px;
+ font-size:15px;
+ color:white;
+ background:linear-gradient(135deg,#2563eb,#1e40af);
+ box-shadow:0 4px 10px rgba(0,0,0,.4);
+}
+
+/* DRAWER */
+.drawer{
+ position:fixed;
+ top:0;
+ right:-260px;
+ width:250px;
+ height:100%;
+ background:#020617;
+ transition:.3s;
+ padding:10px;
+ overflow:auto;
+ z-index:10;
+}
+.drawer.open{right:0;}
+
+.page-row{
+ display:flex;
+ gap:6px;
+ margin-bottom:6px;
+}
+
+.page-row button{
+ flex:1;
+ padding:8px;
+ border:none;
+ border-radius:12px;
+ background:#1f2933;
+ color:#fff;
+}
+
+/* GLOW */
+@keyframes glow{
+ 0%{box-shadow:0 0 10px #ff0080;}
+ 25%{box-shadow:0 0 15px #00ffff;}
+ 50%{box-shadow:0 0 15px #00ff80;}
+ 75%{box-shadow:0 0 15px #ffff00;}
+ 100%{box-shadow:0 0 10px #ff0080;}
+}
+
+/* FRAME */
+@keyframes frame{
+ 0%{filter:hue-rotate(0deg);}
+ 50%{filter:hue-rotate(120deg);}
+ 100%{filter:hue-rotate(240deg);}
+}
+
+/* FULL */
+.full header,
+.full .search,
+.full .ayah-box,
+.full .nav{
+ display:none;
+}
+.full .viewer{max-height:100vh;}
+.full img{max-height:100vh;}
+
+/* ALERT */
+.toast{
+ position:fixed;
+ bottom:20px;
+ left:50%;
+ transform:translateX(-50%);
+ background:#111827;
+ padding:14px 20px;
+ border-radius:16px;
+ box-shadow:0 5px 15px rgba(0,0,0,.5);
+ display:none;
+ text-align:center;
+}
+</style>
+</head>
+
+<body>
+
+<header>القرآن الكريم — حفص</header>
+
+<div class="search">
+ <input id="search" placeholder="اذهب لرقم الصفحة">
+</div>
+
+<div class="ayah-box" id="ayah"></div>
+
+<div class="viewer">
+ <img id="img">
+</div>
+
+<!-- NAV -->
+<div class="nav">
+ <button onclick="prev()">⬅ السابق</button>
+ <button onclick="toggleDrawer()">📖 الفهرس</button>
+ <button onclick="next()">التالي ➡</button>
+</div>
+
+<div class="nav">
+ <button onclick="toggleFull()">🔍 ملء الشاشة</button>
+</div>
+
+<!-- DRAWER -->
+<div class="drawer" id="drawer"></div>
+
+<!-- ALARM -->
+<div class="nav">
+ <input type="time" id="alarm" style="flex:1;padding:10px;border-radius:14px;border:none">
+ <button onclick="setAlarm()">⏰ ضبط المنبه</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<audio id="ring" src="https://assets.mixkit.co/sfx/preview/mixkit-achievement-bell-600.mp3"></audio>
+
+<script>
+const TOTAL=604;
+const BASE="";
+let page=parseInt(localStorage.page||1);
+let full=false;
+let sx;
+
+const img=document.getElementById("img");
+const drawer=document.getElementById("drawer");
+const ring=document.getElementById("ring");
+const toast=document.getElementById("toast");
+
+/* LOAD */
+function load(){
+ img.src=BASE+page+".png";
+ localStorage.page=page;
+}
+load();
+
+/* NAV (LOGIC FIXED) */
+function prev(){
+ if(page>1){
+  page--;
+  load();
+ }
+}
+
+function next(){
+ if(page<TOTAL){
+  page++;
+  load();
+ }
+}
+
+/* DRAWER */
+function toggleDrawer(){
+ drawer.classList.toggle("open");
+}
+
+/* INDEX */
+for(let i=1;i<=TOTAL;i++){
+ let row=document.createElement("div");
+ row.className="page-row";
+
+ let b=document.createElement("button");
+ b.textContent=i;
+ b.onclick=()=>{
+  page=i;
+  load();
+  drawer.classList.remove("open");
+ };
+
+ let s=document.createElement("button");
+ s.textContent="⭐";
+ s.onclick=()=>{
+  localStorage["fav"+i]=true;
+  showToast("📌 تم حفظ الصفحة "+i);
+ };
+
+ row.append(b,s);
+ drawer.appendChild(row);
+}
+
+/* SEARCH */
+search.onchange=()=>{
+ let n=parseInt(search.value);
+ if(n>=1 && n<=TOTAL){
+  page=n;
+  load();
+ }
+};
+
+/* SWIPE */
+img.addEventListener("touchstart",e=>{
+ sx=e.touches[0].clientX;
+});
+
+img.addEventListener("touchend",e=>{
+ let dx=e.changedTouches[0].clientX-sx;
+
+ if(dx>80) next();   // يمين ➜ التالي
+ if(dx<-80) prev(); // يسار ➜ السابق
+});
+
+/* DOUBLE TAP */
+let last=0;
+img.onclick=()=>{
+ let now=Date.now();
+ if(now-last<300) toggleFull();
+ last=now;
+};
+
+/* FULL */
+function toggleFull(){
+ if(!full){
+  document.body.classList.add("full");
+  document.documentElement.requestFullscreen();
+  full=true;
+ }else{
+  document.body.classList.remove("full");
+  document.exitFullscreen();
+  full=false;
+ }
+}
+
+/* AYAT */
+const ayat=[
+ "قُلْ إِنَّمَا أُمِرْتُ أَنْ أَعْبُدَ اللَّهَ وَلَا أُشْرِكَ بِهِ",
+ "كُنْتُمْ خَيْرَ أُمَّةٍ أُخْرِجَتْ لِلنَّاسِ",
+ "وَلَنَا أَعْمَالُنَا وَلَكُمْ أَعْمَالُكُمْ",
+ "إِنَّ مَعَ الْعُسْرِ يُسْرًا",
+ "وَقُلْ رَبِّ زِدْنِي عِلْمًا"
+];
+let ai=0;
+function rotate(){
+ ayah.textContent=ayat[ai%ayat.length];
+ ai++;
+}
+rotate();
+setInterval(rotate,15000);
+
+/* ALARM */
+function setAlarm(){
+ localStorage.alarm=alarm.value;
+ showToast("⏰ تم ضبط المنبه");
+}
+
+setInterval(()=>{
+ let t=localStorage.alarm;
+ if(!t)return;
+
+ let n=new Date();
+ let cur=n.getHours().toString().padStart(2,"0")+":"+n.getMinutes().toString().padStart(2,"0");
+
+ if(cur==t){
+  ring.play();
+  showToast("📖 "+ayat[Math.floor(Math.random()*ayat.length)]);
+  localStorage.alarm="";
+ }
+},60000);
+
+/* TOAST */
+function showToast(msg){
+ toast.textContent=msg;
+ toast.style.display="block";
+ setTimeout(()=>toast.style.display="none",5000);
+}
+</script>
+
+</body>
+</html>
+ 
