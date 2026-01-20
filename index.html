@@ -219,7 +219,63 @@ img{
 </head>
 
 <body>
+ 
+<div id="consentBox" style="
+position:fixed;
+top:0;left:0;
+width:100%;height:100%;
+background:rgba(0,0,0,.85);
+display:flex;
+align-items:center;
+justify-content:center;
+z-index:9999;
+">
 
+<div style="
+background:#111827;
+padding:20px;
+border-radius:16px;
+max-width:90%;
+text-align:center;
+color:white;
+font-size:14px;
+">
+
+<b>🌙 أهلاً بك في تطبيق القرآن الكريم</b><br><br>
+
+نسأل الله لك التوفيق والبركة 🤍  
+هذا التطبيق لا يجمع أي بيانات شخصية إطلاقاً.
+
+سيتم استخدام الإشعارات فقط لتذكيرك
+بورِد القرآن في الوقت الذي تحدده أنت.
+
+<br><br>
+هل تسمح بتفعيل إشعارات المنبه؟
+
+<br><br>
+
+<button onclick="acceptConsent()"
+style="padding:10px 16px;border:none;border-radius:12px;
+background:#22c55e;color:white;font-size:13px">
+موافق 🤍
+</button>
+
+<button onclick="رفض()"
+style="padding:10px 16px;border:none;border-radius:12px;
+background:#ef4444;color:white;font-size:13px;margin-right:6px">
+رفض
+</button>
+
+<br><br>
+<small>
+سياسة الخصوصية:  
+لا يتم جمع أو تخزين أي بيانات.
+كل شيء محفوظ محلياً على جهازك فقط.
+</small>
+
+</div>
+</div>
+ 
 <header>القرآن الكريم — حفص</header>
 
 <div class="search">
@@ -254,6 +310,34 @@ img{
 <audio id="ring" src="alarm.mp3"></audio>
 
 <script>
+ /* طلب إذن الإشعارات */
+if ("Notification" in window) {
+ if (Notification.permission !== "granted") {
+  Notification.requestPermission();
+ }
+}
+
+/* إشعار خارجي */
+function notifyExternal(){
+
+ if(localStorage.consent!=="yes") return;
+
+ if("Notification" in window &&
+    Notification.permission==="granted"){
+
+  new Notification("تذكير القرآن",{
+   body:"حان وقت التلاوة 🌙",
+   icon:"quran-512.png"
+  });
+
+  /* اهتزاز */
+  if(navigator.vibrate){
+   navigator.vibrate([300,150,300,150,500]);
+  }
+ }
+}
+ 
+ 
 const TOTAL=604;
 let page=parseInt(localStorage.page||1);
 let full=false;
@@ -434,10 +518,11 @@ setInterval(()=>{
  let cur=n.getHours().toString().padStart(2,"0")+":"+n.getMinutes().toString().padStart(2,"0");
 
  if(cur==t){
-  ring.play();
-  showToast("📖 "+ayat[Math.floor(Math.random()*ayat.length)]);
-  localStorage.alarm="";
- }
+ ring.play();          // تشغيل الصوت
+ notifyExternal();    // إشعار خارجي
+ showToast("📖 حان وقت التلاوة");
+ localStorage.alarm="";
+}
 },60000);
 
 /* تنبيه */
@@ -446,6 +531,29 @@ function showToast(msg){
  toast.style.display="block";
  setTimeout(()=>toast.style.display="none",3500);
 }
+ /* إظهار نافذة الموافقة أول مرة */
+if(!localStorage.consent){
+ document.getElementById("consentBox").style.display="flex";
+}else{
+ document.getElementById("consentBox").style.display="none";
+}
+
+/* قبول */
+function acceptConsent(){
+ localStorage.consent="yes";
+ document.getElementById("consentBox").style.display="none";
+
+ if("Notification" in window){
+  Notification.requestPermission();
+ }
+}
+
+/* رفض */
+function رفض(){
+ localStorage.consent="no";
+ document.getElementById("consentBox").style.display="none";
+}
+ 
 </script>
 
 </body>
